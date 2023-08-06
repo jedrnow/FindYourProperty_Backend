@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  propertyscraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7166:7166" # Change the port as needed
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=PropertyScraperDev;Username=postgres;Password=supertores99
+    depends_on:
+      - db
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=supertores99
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
