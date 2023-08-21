@@ -1,12 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using PropertyScraper.Data;
-using PropertyScraper.Models;
+using PropertyScraper.Commands;
+using MediatR;
 
 namespace PropertyScraper.Controllers
 {
@@ -15,73 +9,30 @@ namespace PropertyScraper.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly PropertyScraperDbContext _dbContext;
 
-        public AuthController(PropertyScraperDbContext dbContext)
+        private readonly IMediator _mediator;
+
+        public AuthController(IMediator mediator)
         {
-            _dbContext = dbContext;
+            _mediator = mediator;
         }
 
         // POST: api/auth/register
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] UserRegisterDto model)
+        public async Task<ActionResult<bool>> Register([FromBody] RegisterUserCommand request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest("Invalid data");
-            }
+            bool result = await _mediator.Send(request);
 
-            // Check if the username or email is already taken
-            if (await _dbContext.Users.AnyAsync(u => u.Username == model.Username) || await _dbContext.Users.AnyAsync(u => u.Email == model.Email))
-            {
-                return BadRequest("Username or email already taken");
-            }
-
-            // Hash the password for security
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
-
-            var newUser = new User
-            {
-                Username = model.Username,
-                Email = model.Email,
-                PasswordHash = passwordHash
-            };
-
-            _dbContext.Users.Add(newUser);
-            await _dbContext.SaveChangesAsync();
-
-            return Ok("Registration successful");
+            return Ok(result);
         }
 
         // POST: api/auth/login
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] UserLoginDto model)
+        public async Task<ActionResult<string>> Login([FromBody] LoginUserCommand request)
         {
-            var user = await _dbContext.Users.SingleOrDefaultAsync(u => u.Email == model.Email);
+            string result = await _mediator.Send(request);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
-            {
-                return Unauthorized("Invalid credentials");
-            }
-
-            // Authentication successful, generate JWT token
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(new string('z',150)); // Replace with your own secret key
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Email, user.Email)
-                }),
-                Expires = DateTime.UtcNow.AddDays(1),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
-
-            return Ok(new { Token = tokenString });
+            return Ok(result);
         }
     }
 }
