@@ -1,26 +1,26 @@
 ﻿using HtmlAgilityPack;
-using PropertyScraper.Data;
 using PropertyScraper.Models;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Newtonsoft.Json.Linq;
 using Microsoft.EntityFrameworkCore;
+using PropertyScraper.Repositories;
 
 namespace PropertyScraper.Services
 {
-    public class PropertyScraperService
+    public class PropertyScraperService:IPropertyScraperService
     {
         private readonly HttpClient _httpClient;
-        private readonly PropertyRepository _propertyRepository;
+        private readonly IPropertyRepository _propertyRepository;
         private readonly IWebDriver _driver;
         private readonly WebDriverWait _wait;
 
-        public PropertyScraperService(PropertyScraperDbContext dbContext, IWebDriver driver)
+        public PropertyScraperService(IWebDriver driver, IPropertyRepository propertyRepository)
         {
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "*/*");
             _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
-            _propertyRepository = new PropertyRepository(dbContext);
+            _propertyRepository = propertyRepository;
             _driver = driver;
             _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(30));
         }
@@ -234,6 +234,11 @@ namespace PropertyScraper.Services
             }).ToListAsync();
 
             return result;
+        }
+
+        public async Task<bool> SaveChangesAsync()
+        {
+            return (await _propertyRepository.SaveChangesAsync() > 0);
         }
     }
 }

@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using PropertyScraper.Commands;
 using PropertyScraper.Models;
 using PropertyScraper.Queries;
-using PropertyScraper.Services;
 
 namespace PropertyScraper.Controllers
 {
@@ -11,25 +10,27 @@ namespace PropertyScraper.Controllers
     [ApiController]
     public class PropertyScraperController : ControllerBase
     {
-        private readonly PropertyScraperService _scraperService;
+        private readonly IMediator _mediator;
 
-        public PropertyScraperController(PropertyScraperService scraperService)
+        public PropertyScraperController(IMediator mediator)
         {
-            _scraperService = scraperService;
+            _mediator = mediator;
         }
 
         [HttpPost("Scrap")]
-        public async Task<ActionResult<bool>> ScrapeProperties([FromBody] ScrapePropertiesCommand command)
+        public async Task<ActionResult<bool>> ScrapeProperties([FromBody] ScrapePropertiesCommand request)
         {
-            bool scrapingCompleted = await _scraperService.ScrapAndSaveProperties(command.Url, command.City, command.FullScrap);
+            bool result = await _mediator.Send(request);
 
-            return Ok(scrapingCompleted);
+            return Ok(result);
         }
 
         [HttpGet("GetAllByCity")]
         public async Task<ActionResult<List<PropertyItemDto>>> GetPropertiesByCity([FromQuery]string city)
         {
-            List<PropertyItemDto> result = await _scraperService.GetPropertiesByCity(city);
+            GetPropertiesByCityQuery request = new(city);
+
+            List<PropertyItemDto> result = await _mediator.Send(request);
 
             return Ok(result);
         }

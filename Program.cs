@@ -22,11 +22,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<PropertyScraperDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<PropertyScraperService>();
-builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<IPropertyScraperService, PropertyScraperService>();
 builder.Services.AddScoped<UserManager<IdentityUser>>();
 builder.Services.AddScoped<SignInManager<IdentityUser>>();
-builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<IUserRepository,UserRepository>();
+builder.Services.AddScoped<IPropertyRepository,PropertyRepository>();
 builder.Services.AddScoped<IWebDriver>(provider =>
 {
     ChromeOptions options = new();
